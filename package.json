@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "repository": "https://github.com/Kushmanmb/sturdy-funicular",
-  "author": "copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>",
+  "author": "Kushmanmb",
   "license": "MIT",
   "dependencies": {
     "@metamask/smart-accounts-kit": "^0.3.0"
