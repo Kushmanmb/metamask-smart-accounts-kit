@@ -29,8 +29,9 @@ Saves your current changes and reverts to a clean working directory.
 
 **Stash with a descriptive message:**
 ```bash
-git stash save "WIP: implementing user authentication"
+git stash push -m "WIP: implementing user authentication"
 ```
+Note: `git stash save` is deprecated as of Git 2.16; use `git stash push -m` instead.
 
 **List all stashes:**
 ```bash
@@ -91,7 +92,7 @@ git status
 #   modified:   src/auth.js
 
 # Urgent bug fix needed on main branch
-git stash save "WIP: authentication feature"
+git stash push -m "WIP: authentication feature"
 
 # Switch to main and fix the bug
 git checkout main
@@ -121,10 +122,11 @@ git cherry-pick <commit-hash>
 git cherry-pick <commit-hash-1> <commit-hash-2>
 ```
 
-**Cherry-pick a range of commits:**
+**Cherry-pick a range of commits (inclusive):**
 ```bash
-git cherry-pick <start-commit-hash>..<end-commit-hash>
+git cherry-pick <start-commit-hash>^..<end-commit-hash>
 ```
+Note: The `^` ensures the start commit is included. Without it, `<start>..<end>` excludes the start commit.
 
 **Cherry-pick without committing (stage only):**
 ```bash
@@ -203,10 +205,11 @@ git revert <commit-hash>
 git revert <commit-hash-1> <commit-hash-2>
 ```
 
-**Revert a range of commits:**
+**Revert a range of commits (inclusive):**
 ```bash
-git revert <oldest-commit-hash>..<newest-commit-hash>
+git revert <oldest-commit-hash>^..<newest-commit-hash>
 ```
+Note: The `^` ensures the oldest commit is included. Without it, the range excludes the oldest commit.
 
 **Revert without committing immediately:**
 ```bash
