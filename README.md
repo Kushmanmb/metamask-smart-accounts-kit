@@ -126,7 +126,7 @@ git cherry-pick <commit-hash-1> <commit-hash-2>
 ```bash
 git cherry-pick <start-commit-hash>^..<end-commit-hash>
 ```
-Note: The `^` ensures the start commit is included. Without it, `<start>..<end>` excludes the start commit.
+Note: `A^..B` includes commits from A through B inclusive by referencing the commit before A. The syntax `A..B` excludes commit A and only includes commits after A up to B.
 
 **Cherry-pick without committing (stage only):**
 ```bash
@@ -207,9 +207,9 @@ git revert <commit-hash-1> <commit-hash-2>
 
 **Revert a range of commits (inclusive):**
 ```bash
-git revert <oldest-commit-hash>^..<newest-commit-hash>
+git revert <start-commit-hash>^..<end-commit-hash>
 ```
-Note: The `^` ensures the oldest commit is included. Without it, the range excludes the oldest commit.
+Note: `A^..B` includes commits from A through B inclusive by referencing the commit before A. The syntax `A..B` excludes commit A and only includes commits after A up to B.
 
 **Revert without committing immediately:**
 ```bash
@@ -395,7 +395,7 @@ git reset --hard origin/main
 
 ### Reset vs Revert
 
-| Aspect | `git reset` | `git revert` |
+| **Aspect** | `git reset` | `git revert` |
 |--------|-------------|--------------|
 | **History** | Rewrites history | Preserves history |
 | **Safety** | Dangerous for shared branches | Safe for shared branches |
