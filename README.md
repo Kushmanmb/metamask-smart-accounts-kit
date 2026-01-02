@@ -126,7 +126,7 @@ git cherry-pick <commit-hash-1> <commit-hash-2>
 ```bash
 git cherry-pick <start-commit-hash>^..<end-commit-hash>
 ```
-Note: `A^..B` includes commits from A through B inclusive by referencing the commit before A. The syntax `A..B` excludes commit A and only includes commits after A up to B.
+Note: To include all commits from A to B, use `A^..B`. This starts from the parent of A (denoted by `^`), making commit A the first in the range, through to B. Using `A..B` alone would skip commit A and only cherry-pick commits after A up to B.
 
 **Cherry-pick without committing (stage only):**
 ```bash
@@ -209,7 +209,7 @@ git revert <commit-hash-1> <commit-hash-2>
 ```bash
 git revert <start-commit-hash>^..<end-commit-hash>
 ```
-Note: `A^..B` includes commits from A through B inclusive by referencing the commit before A. The syntax `A..B` excludes commit A and only includes commits after A up to B.
+Note: To include all commits from A to B, use `A^..B`. This starts from the parent of A (denoted by `^`), making commit A the first in the range, through to B. Using `A..B` alone would skip commit A and only revert commits after A up to B.
 
 **Revert without committing immediately:**
 ```bash
@@ -396,7 +396,7 @@ git reset --hard origin/main
 ### Reset vs Revert
 
 | **Aspect** | `git reset` | `git revert` |
-|--------|-------------|--------------|
+|------------|-------------|--------------|
 | **History** | Rewrites history | Preserves history |
 | **Safety** | Dangerous for shared branches | Safe for shared branches |
 | **Use Case** | Local commits not pushed yet | Published commits |
