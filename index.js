@@ -23,7 +23,7 @@ function buildApiPath(chain = ETHERSCAN_CONFIG.defaultChain) {
  * Executes a GET request to Etherscan API v2
  * Uses native https module for zero external dependencies
  */
-function queryEtherscanApi(chainId = '1') {
+function queryEtherscanApi(chainId = ETHERSCAN_CONFIG.defaultChain) {
   return new Promise((resolve, reject) => {
     const requestConfig = {
       hostname: ETHERSCAN_CONFIG.baseUrl,

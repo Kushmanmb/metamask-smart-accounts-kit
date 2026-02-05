@@ -63,12 +63,21 @@ console.log('\nTest 4: Checking queryEtherscanApi function...');
 if (typeof etherscanModule.queryEtherscanApi === 'function') {
   console.log('  ✓ queryEtherscanApi is a function');
   
-  // Verify it returns a Promise
-  const result = etherscanModule.queryEtherscanApi('1');
-  if (result instanceof Promise) {
-    console.log('  ✓ Returns a Promise');
-    // Clean up the promise to avoid unhandled rejection
-    result.catch(() => {});
+  // Verify it returns a Promise with default parameter
+  const resultDefault = etherscanModule.queryEtherscanApi();
+  if (resultDefault instanceof Promise) {
+    console.log('  ✓ Returns a Promise (default chain)');
+    resultDefault.catch(() => {});
+  } else {
+    console.log('  ✗ Does not return a Promise');
+    process.exit(1);
+  }
+  
+  // Verify it returns a Promise with custom parameter
+  const resultCustom = etherscanModule.queryEtherscanApi('1');
+  if (resultCustom instanceof Promise) {
+    console.log('  ✓ Returns a Promise (custom chain)');
+    resultCustom.catch(() => {});
   } else {
     console.log('  ✗ Does not return a Promise');
     process.exit(1);

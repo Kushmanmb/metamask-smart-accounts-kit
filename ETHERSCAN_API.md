@@ -58,12 +58,12 @@ queryEtherscanApi('1')
 
 ## API Reference
 
-### `queryEtherscanApi(chainId = '1')`
+### `queryEtherscanApi(chainId = 'eth')`
 
 Executes a GET request to Etherscan API v2 endpoint.
 
 **Parameters:**
-- `chainId` (string, optional): The blockchain chain ID. Default: '1'
+- `chainId` (string, optional): The blockchain chain ID. Default: 'eth'
 
 **Returns:**
 - Promise that resolves to an object containing:
