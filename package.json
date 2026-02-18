@@ -5,6 +5,17 @@
   "repository": "https://github.com/Kushmanmb/sturdy-funicular",
   "author": "Kushmanmb",
   "license": "MIT",
+  "name": "sturdy-funicular",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/Kushmanmb/sturdy-funicular",
+  "author": "copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>",
+  "license": "MIT",
+  "scripts": {
+    "start": "node index.js",
+    "query-etherscan": "node index.js",
+    "test": "node test.js"
+  },
   "dependencies": {
     "@metamask/smart-accounts-kit": "^0.3.0"
   }
