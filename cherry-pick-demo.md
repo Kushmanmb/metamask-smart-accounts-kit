@@ -29,7 +29,7 @@ Both commits were successfully applied:
 
 After cherry-picking, we verified the changes by:
 1. Checking the git log to confirm both commits were applied
-2. Running `node test.js` to ensure all tests passed
+2. Running `npm test` to ensure all tests passed
 3. Verifying that the code files (index.js, test.js, ETHERSCAN_API.md) were present
 
 All tests passed successfully, confirming that the cherry-pick operation correctly brought in the functionality without breaking existing code.
