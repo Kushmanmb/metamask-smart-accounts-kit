@@ -4,6 +4,7 @@
  */
 
 const https = require('https');
+const bip39 = require('bip39');
 
 // Configuration for Etherscan API access
 // defaultChain uses the numeric chain ID for Ethereum mainnet (EIP-155)
@@ -271,6 +272,41 @@ function queryTokenBalance(address, contractAddress, apiKey, chainId = ETHERSCAN
   });
 }
 
+/**
+ * Looks up ERC-20 token information by symbol (case-insensitive)
+ * @param {string} symbol - The token symbol to look up (e.g. 'USDT')
+ * @returns {{symbol: string, name: string, chainId: string, address: string, decimals: number}|undefined}
+ *   Token info object with symbol, name, chainId, address, and decimals, or undefined if not found
+ */
+function getErc20TokenInfo(symbol) {
+  if (typeof symbol !== 'string') {
+    return undefined;
+  }
+  return SUPPORTED_ERC20_TOKENS.find(t => t.symbol.toLowerCase() === symbol.toLowerCase());
+}
+
+/**
+ * Generates a new BIP-39 mnemonic seed phrase using cryptographically secure entropy.
+ *
+ * **Security warning:** Seed phrases provide full access to a wallet. Never log,
+ * display in plain text longer than necessary, transmit over insecure channels,
+ * or store without strong encryption. This function is intended for wallet
+ * initialisation flows where the phrase is shown once and immediately stored
+ * securely by the caller.
+ *
+ * @param {number} [wordCount=12] - Number of words in the seed phrase (12 or 24)
+ * @returns {string} A space-separated BIP-39 mnemonic seed phrase
+ * @throws {Error} If wordCount is not 12 or 24
+ */
+function generateSeedPhrase(wordCount = 12) {
+  if (wordCount !== 12 && wordCount !== 24) {
+    throw new Error('wordCount must be 12 or 24');
+  }
+  // BIP-39: 12 words = 128 bits of entropy, 24 words = 256 bits of entropy
+  const strength = wordCount === 24 ? 256 : 128;
+  return bip39.generateMnemonic(strength);
+}
+
 // Export for use in other modules
 module.exports = {
   queryEtherscanApi,
@@ -279,8 +315,8 @@ module.exports = {
   makeEtherscanRequest,
   queryEthBalance,
   queryTokenBalance,
-  ETHERSCAN_CONFIG
   getErc20TokenInfo,
+  generateSeedPhrase,
   ETHERSCAN_CONFIG,
   SUPPORTED_ERC20_TOKENS,
   DEPRECATED_NETWORKS

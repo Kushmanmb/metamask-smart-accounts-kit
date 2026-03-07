@@ -13,6 +13,7 @@ const expectedExports = [
   'queryEtherscanApi',
   'buildApiPath',
   'getErc20TokenInfo',
+  'generateSeedPhrase',
   'ETHERSCAN_CONFIG',
   'SUPPORTED_ERC20_TOKENS',
   'DEPRECATED_NETWORKS'
@@ -289,6 +290,59 @@ if (invalidInput !== undefined) {
 }
 
 console.log('  ✓ getErc20TokenInfo works correctly (case-insensitive, returns undefined for unknown tokens)');
+
+// Test 8: Verify generateSeedPhrase
+console.log('\nTest 8: Testing generateSeedPhrase function...');
+if (typeof etherscanModule.generateSeedPhrase !== 'function') {
+  console.log('  ✗ generateSeedPhrase is not a function');
+  process.exit(1);
+}
+
+const phrase12 = etherscanModule.generateSeedPhrase();
+const words12 = phrase12.split(' ');
+if (words12.length !== 12) {
+  console.log(`  ✗ Default seed phrase should have 12 words, got ${words12.length}`);
+  process.exit(1);
+}
+console.log('  ✓ generateSeedPhrase() returns a 12-word seed phrase by default');
+
+const phrase24 = etherscanModule.generateSeedPhrase(24);
+const words24 = phrase24.split(' ');
+if (words24.length !== 24) {
+  console.log(`  ✗ 24-word seed phrase should have 24 words, got ${words24.length}`);
+  process.exit(1);
+}
+console.log('  ✓ generateSeedPhrase(24) returns a 24-word seed phrase');
+
+const phrase12explicit = etherscanModule.generateSeedPhrase(12);
+const words12explicit = phrase12explicit.split(' ');
+if (words12explicit.length !== 12) {
+  console.log(`  ✗ 12-word seed phrase should have 12 words, got ${words12explicit.length}`);
+  process.exit(1);
+}
+console.log('  ✓ generateSeedPhrase(12) returns a 12-word seed phrase');
+
+// Verify uniqueness – two consecutive calls should produce different phrases
+const phraseA = etherscanModule.generateSeedPhrase();
+const phraseB = etherscanModule.generateSeedPhrase();
+if (phraseA === phraseB) {
+  console.log('  ✗ Two consecutive seed phrases should be different');
+  process.exit(1);
+}
+console.log('  ✓ Consecutive calls produce different seed phrases (entropy-based)');
+
+// Verify invalid word count throws
+let threwOnInvalid = false;
+try {
+  etherscanModule.generateSeedPhrase(15);
+} catch (e) {
+  threwOnInvalid = true;
+}
+if (!threwOnInvalid) {
+  console.log('  ✗ generateSeedPhrase should throw for unsupported word counts');
+  process.exit(1);
+}
+console.log('  ✓ generateSeedPhrase throws an error for unsupported word counts');
 
 console.log('\n✓ All validation tests passed!');
 console.log('\nNote: Network requests cannot be tested in this environment.');
