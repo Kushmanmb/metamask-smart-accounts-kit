@@ -1,6 +1,7 @@
 {
   "name": "metamask-smart-accounts-kit-demo",
   "version": "1.0.0",
+  "description": "MetaMask Smart Accounts Kit Demo - Etherscan API integration for smart account monitoring",
   "main": "index.js",
   "repository": "https://github.com/kushmanmb-org/metamask-smart-accounts-kit",
   "author": "kushmanmb-org",
