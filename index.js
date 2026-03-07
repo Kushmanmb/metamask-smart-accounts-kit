@@ -161,11 +161,16 @@ function queryEthBalance(address, apiKey, chainId = ETHERSCAN_CONFIG.defaultChai
       throw new Error(`Etherscan API error: ${body.message || body.result}`);
     }
     const balanceWei = body.result;
-    const balanceEth = (BigInt(balanceWei) * 100000n / BigInt(1e18)) / 100000n * 100000n;
+    // Perform division in BigInt to preserve precision, then format as decimal string
+    const weiPerEth = BigInt('1000000000000000000');
+    const balanceBigInt = BigInt(balanceWei);
+    const integerPart = balanceBigInt / weiPerEth;
+    const fractionalPart = ((balanceBigInt % weiPerEth) * 1000000n / weiPerEth).toString().padStart(6, '0');
+    const balanceEth = `${integerPart}.${fractionalPart}`;
     return {
       address,
       balance: balanceWei,
-      balanceEth: (Number(BigInt(balanceWei)) / 1e18).toFixed(6)
+      balanceEth
     };
   });
 }
