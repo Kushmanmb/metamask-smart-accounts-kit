@@ -1,6 +1,6 @@
 /**
  * Test suite for Etherscan API integration
- * Validates module exports and configuration
+ * Validates module exports, configuration, and API key handling
  */
 
 const etherscanModule = require('./index.js');
@@ -9,7 +9,7 @@ console.log('Running module validation tests...\n');
 
 // Test 1: Verify exports
 console.log('Test 1: Checking module exports...');
-const expectedExports = ['queryEtherscanApi', 'buildApiPath', 'ETHERSCAN_CONFIG'];
+const expectedExports = ['queryEtherscanApi', 'buildApiPath', 'getApiKey', 'ETHERSCAN_CONFIG'];
 const actualExports = Object.keys(etherscanModule);
 
 let exportsValid = true;
@@ -43,40 +43,78 @@ if (config.baseUrl === 'api.etherscan.io' &&
   process.exit(1);
 }
 
-// Test 3: Verify path builder
+// Test 3: Verify path builder with explicit API key
 console.log('\nTest 3: Testing path builder function...');
-const pathDefault = etherscanModule.buildApiPath();
-const pathCustom = etherscanModule.buildApiPath('1');
+const testApiKey = 'TESTKEY123';
+const pathDefault = etherscanModule.buildApiPath('eth', testApiKey);
+const pathCustom = etherscanModule.buildApiPath('1', testApiKey);
 
-if (pathDefault === '/v2/api?chainid=eth' && pathCustom === '/v2/api?chainid=1') {
+if (pathDefault === `/v2/api?chainid=eth&apikey=${testApiKey}` &&
+    pathCustom === `/v2/api?chainid=1&apikey=${testApiKey}`) {
   console.log('  ✓ Path builder works correctly');
-  console.log(`    Default path: ${pathDefault}`);
-  console.log(`    Custom path: ${pathCustom}`);
+  console.log(`    Default path: /v2/api?chainid=eth&apikey=***`);
+  console.log(`    Custom path:  /v2/api?chainid=1&apikey=***`);
 } else {
   console.log('  ✗ Path builder failed');
-  console.log(`    Got: ${pathDefault} and ${pathCustom}`);
   process.exit(1);
 }
 
-// Test 4: Verify function signature
-console.log('\nTest 4: Checking queryEtherscanApi function...');
+// Test 4: Verify getApiKey throws when env var is not set
+console.log('\nTest 4: Verifying API key environment variable guard...');
+const savedKey = process.env.ETHERSCAN_API_KEY;
+delete process.env.ETHERSCAN_API_KEY;
+
+let threwCorrectly = false;
+try {
+  etherscanModule.getApiKey();
+} catch (err) {
+  if (err.message.includes('ETHERSCAN_API_KEY')) {
+    threwCorrectly = true;
+  }
+}
+
+if (threwCorrectly) {
+  console.log('  ✓ getApiKey throws when ETHERSCAN_API_KEY is not set');
+} else {
+  console.log('  ✗ getApiKey should throw when ETHERSCAN_API_KEY is not set');
+  process.exit(1);
+}
+
+// Test 5: Verify getApiKey returns the key when env var is set
+console.log('\nTest 5: Verifying getApiKey reads from environment...');
+process.env.ETHERSCAN_API_KEY = 'env-test-key';
+
+let envKey;
+try {
+  envKey = etherscanModule.getApiKey();
+} catch (err) {
+  console.log(`  ✗ getApiKey threw unexpectedly: ${err.message}`);
+  process.exit(1);
+}
+
+if (envKey === 'env-test-key') {
+  console.log('  ✓ getApiKey correctly reads ETHERSCAN_API_KEY from environment');
+} else {
+  console.log('  ✗ getApiKey returned unexpected value');
+  process.exit(1);
+}
+
+// Restore environment
+if (savedKey !== undefined) {
+  process.env.ETHERSCAN_API_KEY = savedKey;
+} else {
+  delete process.env.ETHERSCAN_API_KEY;
+}
+
+// Test 6: Verify queryEtherscanApi function signature
+console.log('\nTest 6: Checking queryEtherscanApi function...');
 if (typeof etherscanModule.queryEtherscanApi === 'function') {
   console.log('  ✓ queryEtherscanApi is a function');
-  
-  // Verify it returns a Promise with default parameter
-  const resultDefault = etherscanModule.queryEtherscanApi();
-  if (resultDefault instanceof Promise) {
-    console.log('  ✓ Returns a Promise (default chain)');
-    resultDefault.catch(() => {});
-  } else {
-    console.log('  ✗ Does not return a Promise');
-    process.exit(1);
-  }
-  
-  // Verify it returns a Promise with custom parameter
-  const resultCustom = etherscanModule.queryEtherscanApi('1');
+
+  // Verify it returns a Promise when called with explicit API key
+  const resultCustom = etherscanModule.queryEtherscanApi('1', testApiKey);
   if (resultCustom instanceof Promise) {
-    console.log('  ✓ Returns a Promise (custom chain)');
+    console.log('  ✓ Returns a Promise (explicit API key)');
     resultCustom.catch(() => {});
   } else {
     console.log('  ✗ Does not return a Promise');
@@ -89,4 +127,4 @@ if (typeof etherscanModule.queryEtherscanApi === 'function') {
 
 console.log('\n✓ All validation tests passed!');
 console.log('\nNote: Network requests cannot be tested in this environment.');
-console.log('The module is ready to use with external network access.');
+console.log('Set ETHERSCAN_API_KEY in your environment before running the module for real requests.');
