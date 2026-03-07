@@ -1,4 +1,4 @@
-# sturdy-funicular
+# metamask-smart-accounts-kit
 
 ## Advanced Git Commands Guide
 

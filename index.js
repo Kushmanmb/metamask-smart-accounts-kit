@@ -6,11 +6,66 @@
 const https = require('https');
 
 // Configuration for Etherscan API access
+// defaultChain uses the numeric chain ID for Ethereum mainnet (EIP-155)
 const ETHERSCAN_CONFIG = {
   baseUrl: 'api.etherscan.io',
   apiVersion: 'v2',
-  defaultChain: 'eth'
+  defaultChain: '1'
 };
+
+/**
+ * Deprecated test networks – no longer supported by MetaMask or Infura.
+ * All token integrations must target mainnet (chainId 1) or a supported L2.
+ */
+const DEPRECATED_NETWORKS = [
+  { name: 'Ropsten',  chainId: '3',    status: 'deprecated' },
+  { name: 'Rinkeby',  chainId: '4',    status: 'deprecated' },
+  { name: 'Kovan',    chainId: '42',   status: 'deprecated' },
+  { name: 'Goerli',   chainId: '5',    status: 'deprecated' }
+];
+
+/**
+ * Consolidated list of supported ERC-20 tokens on Ethereum mainnet.
+ * Deprecated token contract addresses have been replaced with their
+ * current mainnet equivalents.
+ */
+const SUPPORTED_ERC20_TOKENS = [
+  {
+    symbol: 'USDT',
+    name: 'Tether USD',
+    chainId: '1',
+    address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+    decimals: 6
+  },
+  {
+    symbol: 'USDC',
+    name: 'USD Coin',
+    chainId: '1',
+    address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+    decimals: 6
+  },
+  {
+    symbol: 'DAI',
+    name: 'Dai Stablecoin',
+    chainId: '1',
+    address: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
+    decimals: 18
+  },
+  {
+    symbol: 'WETH',
+    name: 'Wrapped Ether',
+    chainId: '1',
+    address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+    decimals: 18
+  },
+  {
+    symbol: 'WBTC',
+    name: 'Wrapped BTC',
+    chainId: '1',
+    address: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
+    decimals: 8
+  }
+];
 
 /**
  * Constructs the full API endpoint path
@@ -225,6 +280,10 @@ module.exports = {
   queryEthBalance,
   queryTokenBalance,
   ETHERSCAN_CONFIG
+  getErc20TokenInfo,
+  ETHERSCAN_CONFIG,
+  SUPPORTED_ERC20_TOKENS,
+  DEPRECATED_NETWORKS
 };
 
 // CLI execution support
