@@ -118,25 +118,31 @@ if (queryStr === expectedStr) {
 
 // Test 6: Verify queryEthBalance input validation
 console.log('\nTest 6: Testing queryEthBalance input validation...');
-let validationPassed = true;
 
-etherscanModule.queryEthBalance(null, 'apikey').catch(err => {
-  if (err.message === 'Address is required') {
-    console.log('  ✓ Rejects missing address');
-  } else {
-    console.log(`  ✗ Wrong error for missing address: ${err.message}`);
-    validationPassed = false;
-  }
-});
-
-etherscanModule.queryEthBalance('0x1234', null).catch(err => {
-  if (err.message === 'API key is required') {
-    console.log('  ✓ Rejects missing API key');
-  } else {
-    console.log(`  ✗ Wrong error for missing API key: ${err.message}`);
-    validationPassed = false;
-  }
-});
+const ethBalanceValidations = [
+  etherscanModule.queryEthBalance(null, 'apikey').then(
+    () => { console.log('  ✗ Should have rejected missing address'); process.exit(1); },
+    err => {
+      if (err.message === 'Address is required') {
+        console.log('  ✓ Rejects missing address');
+      } else {
+        console.log(`  ✗ Wrong error for missing address: ${err.message}`);
+        process.exit(1);
+      }
+    }
+  ),
+  etherscanModule.queryEthBalance('0x1234', null).then(
+    () => { console.log('  ✗ Should have rejected missing API key'); process.exit(1); },
+    err => {
+      if (err.message === 'API key is required') {
+        console.log('  ✓ Rejects missing API key');
+      } else {
+        console.log(`  ✗ Wrong error for missing API key: ${err.message}`);
+        process.exit(1);
+      }
+    }
+  )
+];
 
 const ethBalanceResult = etherscanModule.queryEthBalance('0x1234', 'apikey');
 if (ethBalanceResult instanceof Promise) {
@@ -144,43 +150,47 @@ if (ethBalanceResult instanceof Promise) {
   ethBalanceResult.catch(() => {});
 } else {
   console.log('  ✗ queryEthBalance does not return a Promise');
-  validationPassed = false;
-}
-
-if (!validationPassed) {
   process.exit(1);
 }
 
 // Test 7: Verify queryTokenBalance input validation
 console.log('\nTest 7: Testing queryTokenBalance input validation...');
-let tokenValidationPassed = true;
 
-etherscanModule.queryTokenBalance(null, '0xtoken', 'apikey').catch(err => {
-  if (err.message === 'Address is required') {
-    console.log('  ✓ Rejects missing address');
-  } else {
-    console.log(`  ✗ Wrong error for missing address: ${err.message}`);
-    tokenValidationPassed = false;
-  }
-});
-
-etherscanModule.queryTokenBalance('0x1234', null, 'apikey').catch(err => {
-  if (err.message === 'Contract address is required') {
-    console.log('  ✓ Rejects missing contract address');
-  } else {
-    console.log(`  ✗ Wrong error for missing contract address: ${err.message}`);
-    tokenValidationPassed = false;
-  }
-});
-
-etherscanModule.queryTokenBalance('0x1234', '0xtoken', null).catch(err => {
-  if (err.message === 'API key is required') {
-    console.log('  ✓ Rejects missing API key');
-  } else {
-    console.log(`  ✗ Wrong error for missing API key: ${err.message}`);
-    tokenValidationPassed = false;
-  }
-});
+const tokenBalanceValidations = [
+  etherscanModule.queryTokenBalance(null, '0xtoken', 'apikey').then(
+    () => { console.log('  ✗ Should have rejected missing address'); process.exit(1); },
+    err => {
+      if (err.message === 'Address is required') {
+        console.log('  ✓ Rejects missing address');
+      } else {
+        console.log(`  ✗ Wrong error for missing address: ${err.message}`);
+        process.exit(1);
+      }
+    }
+  ),
+  etherscanModule.queryTokenBalance('0x1234', null, 'apikey').then(
+    () => { console.log('  ✗ Should have rejected missing contract address'); process.exit(1); },
+    err => {
+      if (err.message === 'Contract address is required') {
+        console.log('  ✓ Rejects missing contract address');
+      } else {
+        console.log(`  ✗ Wrong error for missing contract address: ${err.message}`);
+        process.exit(1);
+      }
+    }
+  ),
+  etherscanModule.queryTokenBalance('0x1234', '0xtoken', null).then(
+    () => { console.log('  ✗ Should have rejected missing API key'); process.exit(1); },
+    err => {
+      if (err.message === 'API key is required') {
+        console.log('  ✓ Rejects missing API key');
+      } else {
+        console.log(`  ✗ Wrong error for missing API key: ${err.message}`);
+        process.exit(1);
+      }
+    }
+  )
+];
 
 const tokenBalanceResult = etherscanModule.queryTokenBalance('0x1234', '0xtoken', 'apikey');
 if (tokenBalanceResult instanceof Promise) {
@@ -188,15 +198,20 @@ if (tokenBalanceResult instanceof Promise) {
   tokenBalanceResult.catch(() => {});
 } else {
   console.log('  ✗ queryTokenBalance does not return a Promise');
-  tokenValidationPassed = false;
-}
-
-if (!tokenValidationPassed) {
   process.exit(1);
 }
 
-// Test 5: Verify SUPPORTED_ERC20_TOKENS
-console.log('\nTest 5: Verifying SUPPORTED_ERC20_TOKENS...');
+Promise.all([...ethBalanceValidations, ...tokenBalanceValidations])
+  .then(runRemainingTests)
+  .catch(err => {
+    console.error(`\n✗ Unexpected test failure: ${err.message}`);
+    process.exit(1);
+  });
+
+function runRemainingTests() {
+
+// Test 8: Verify SUPPORTED_ERC20_TOKENS
+console.log('\nTest 8: Verifying SUPPORTED_ERC20_TOKENS...');
 const tokens = etherscanModule.SUPPORTED_ERC20_TOKENS;
 
 if (!Array.isArray(tokens) || tokens.length === 0) {
@@ -231,8 +246,8 @@ if (tokensValid) {
   process.exit(1);
 }
 
-// Test 6: Verify DEPRECATED_NETWORKS
-console.log('\nTest 6: Verifying DEPRECATED_NETWORKS...');
+// Test 9: Verify DEPRECATED_NETWORKS
+console.log('\nTest 9: Verifying DEPRECATED_NETWORKS...');
 const deprecated = etherscanModule.DEPRECATED_NETWORKS;
 
 if (!Array.isArray(deprecated) || deprecated.length === 0) {
@@ -257,8 +272,8 @@ if (allDeprecated) {
   process.exit(1);
 }
 
-// Test 7: Verify getErc20TokenInfo
-console.log('\nTest 7: Testing getErc20TokenInfo function...');
+// Test 10: Verify getErc20TokenInfo
+console.log('\nTest 10: Testing getErc20TokenInfo function...');
 if (typeof etherscanModule.getErc20TokenInfo !== 'function') {
   console.log('  ✗ getErc20TokenInfo is not a function');
   process.exit(1);
@@ -291,8 +306,8 @@ if (invalidInput !== undefined) {
 
 console.log('  ✓ getErc20TokenInfo works correctly (case-insensitive, returns undefined for unknown tokens)');
 
-// Test 8: Verify generateSeedPhrase
-console.log('\nTest 8: Testing generateSeedPhrase function...');
+// Test 11: Verify generateSeedPhrase
+console.log('\nTest 11: Testing generateSeedPhrase function...');
 if (typeof etherscanModule.generateSeedPhrase !== 'function') {
   console.log('  ✗ generateSeedPhrase is not a function');
   process.exit(1);
@@ -347,4 +362,5 @@ console.log('  ✓ generateSeedPhrase throws an error for unsupported word count
 console.log('\n✓ All validation tests passed!');
 console.log('\nNote: Network requests cannot be tested in this environment.');
 console.log('The module is ready to use with external network access.');
+}
 
