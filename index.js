@@ -86,64 +86,13 @@ function buildQueryString(params) {
 }
 
 /**
- * Executes a GET request to Etherscan API v2
- * Uses native https module for zero external dependencies
+ * Performs a raw HTTPS GET request and resolves with parsed JSON.
+ * Shared by all Etherscan API callers to eliminate duplicated request logic.
+ * @param {string} fullPath - The complete URL path including query string
+ * @returns {Promise<{statusCode: number, headers: object, body: object}>}
  */
-function queryEtherscanApi(chainId = ETHERSCAN_CONFIG.defaultChain) {
+function makeHttpsRequest(fullPath) {
   return new Promise((resolve, reject) => {
-    const requestConfig = {
-      hostname: ETHERSCAN_CONFIG.baseUrl,
-      port: 443,
-      path: buildApiPath(chainId),
-      method: 'GET',
-      headers: {
-        'User-Agent': 'SmartAccountsKit/1.0',
-        'Accept': 'application/json'
-      }
-    };
-
-    const req = https.request(requestConfig, (response) => {
-      let dataBuffer = '';
-      
-      response.on('data', (chunk) => {
-        dataBuffer += chunk.toString();
-      });
-      
-      response.on('end', () => {
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          try {
-            const parsedData = JSON.parse(dataBuffer);
-            resolve({
-              statusCode: response.statusCode,
-              headers: response.headers,
-              body: parsedData
-            });
-          } catch (parseError) {
-            reject(new Error(`Failed to parse response: ${parseError.message}`));
-          }
-        } else {
-          reject(new Error(`Request failed with status ${response.statusCode}`));
-        }
-      });
-    });
-
-    req.on('error', (error) => {
-      reject(new Error(`Network error: ${error.message}`));
-    });
-
-    req.end();
-  });
-}
-
-/**
- * Makes a parameterized GET request to the Etherscan API v2
- */
-function makeEtherscanRequest(params, chainId = ETHERSCAN_CONFIG.defaultChain) {
-  return new Promise((resolve, reject) => {
-    const basePath = buildApiPath(chainId);
-    const queryString = buildQueryString(params);
-    const fullPath = `${basePath}&${queryString}`;
-
     const requestConfig = {
       hostname: ETHERSCAN_CONFIG.baseUrl,
       port: 443,
@@ -189,10 +138,26 @@ function makeEtherscanRequest(params, chainId = ETHERSCAN_CONFIG.defaultChain) {
 }
 
 /**
+ * Executes a GET request to Etherscan API v2
+ * Uses native https module for zero external dependencies
+ */
+function queryEtherscanApi(chainId = ETHERSCAN_CONFIG.defaultChain) {
+  return makeHttpsRequest(buildApiPath(chainId));
+}
+
+/**
+ * Makes a parameterized GET request to the Etherscan API v2
+ */
+function makeEtherscanRequest(params, chainId = ETHERSCAN_CONFIG.defaultChain) {
+  const fullPath = `${buildApiPath(chainId)}&${buildQueryString(params)}`;
+  return makeHttpsRequest(fullPath);
+}
+
+/**
  * Queries the native ETH balance for a given wallet address
  * @param {string} address - The wallet address to query
  * @param {string} apiKey - Etherscan API key
- * @param {string} [chainId] - Chain ID (default: 'eth')
+ * @param {string} [chainId] - Chain ID (default: '1' for Ethereum mainnet)
  * @returns {Promise<{address: string, balance: string, balanceEth: string}>}
  */
 function queryEthBalance(address, apiKey, chainId = ETHERSCAN_CONFIG.defaultChain) {
@@ -236,7 +201,7 @@ function queryEthBalance(address, apiKey, chainId = ETHERSCAN_CONFIG.defaultChai
  * @param {string} address - The wallet address to query
  * @param {string} contractAddress - The ERC-20 token contract address
  * @param {string} apiKey - Etherscan API key
- * @param {string} [chainId] - Chain ID (default: 'eth')
+ * @param {string} [chainId] - Chain ID (default: '1' for Ethereum mainnet)
  * @returns {Promise<{address: string, contractAddress: string, balance: string}>}
  */
 function queryTokenBalance(address, contractAddress, apiKey, chainId = ETHERSCAN_CONFIG.defaultChain) {
@@ -307,7 +272,94 @@ function generateSeedPhrase(wordCount = 12) {
   return bip39.generateMnemonic(strength);
 }
 
-// Export for use in other modules
+/**
+ * Queries the deployed bytecode for a contract address, confirming whether a
+ * smart contract is present at that address on-chain.
+ *
+ * @param {string} address - The contract address to inspect
+ * @param {string} apiKey - Etherscan API key
+ * @param {string} [chainId] - Chain ID (default: '1' for Ethereum mainnet)
+ * @returns {Promise<{address: string, bytecode: string, isDeployed: boolean}>}
+ */
+function queryContractCode(address, apiKey, chainId = ETHERSCAN_CONFIG.defaultChain) {
+  if (!address) {
+    return Promise.reject(new Error('Address is required'));
+  }
+  if (!apiKey) {
+    return Promise.reject(new Error('API key is required'));
+  }
+
+  const params = {
+    module: 'proxy',
+    action: 'eth_getCode',
+    address,
+    tag: 'latest',
+    apikey: apiKey
+  };
+
+  return makeEtherscanRequest(params, chainId).then(result => {
+    const body = result.body;
+    if (body.error) {
+      throw new Error(`Etherscan API error: ${body.error.message || JSON.stringify(body.error)}`);
+    }
+    const bytecode = body.result || '0x';
+    return {
+      address,
+      bytecode,
+      isDeployed: bytecode !== '0x' && bytecode.length > 2
+    };
+  });
+}
+
+/**
+ * Retrieves the transaction history ("runs") for a deployed contract, enabling
+ * callers to audit and manage past operations against the contract.
+ *
+ * @param {string} address - The contract address to query
+ * @param {string} apiKey - Etherscan API key
+ * @param {string} [chainId] - Chain ID (default: '1' for Ethereum mainnet)
+ * @param {object} [options] - Optional filter parameters
+ * @param {number} [options.page=1] - Page number for paginated results
+ * @param {number} [options.offset=25] - Number of transactions per page (max 10 000)
+ * @param {string} [options.sort='desc'] - Sort order: 'asc' or 'desc'
+ * @returns {Promise<{address: string, runs: Array, total: number}>}
+ */
+function getContractRuns(address, apiKey, chainId = ETHERSCAN_CONFIG.defaultChain, options = {}) {
+  if (!address) {
+    return Promise.reject(new Error('Address is required'));
+  }
+  if (!apiKey) {
+    return Promise.reject(new Error('API key is required'));
+  }
+
+  const { page = 1, offset = 25, sort = 'desc' } = options;
+
+  const params = {
+    module: 'account',
+    action: 'txlist',
+    address,
+    startblock: 0,
+    endblock: 99999999,
+    page,
+    offset,
+    sort,
+    apikey: apiKey
+  };
+
+  return makeEtherscanRequest(params, chainId).then(result => {
+    const body = result.body;
+    if (body.status !== '1' && body.message !== 'No transactions found') {
+      throw new Error(`Etherscan API error: ${body.message || body.result}`);
+    }
+    const runs = body.result || [];
+    return {
+      address,
+      runs,
+      total: runs.length
+    };
+  });
+}
+
 module.exports = {
   queryEtherscanApi,
   buildApiPath,
@@ -317,6 +369,8 @@ module.exports = {
   queryTokenBalance,
   getErc20TokenInfo,
   generateSeedPhrase,
+  queryContractCode,
+  getContractRuns,
   ETHERSCAN_CONFIG,
   SUPPORTED_ERC20_TOKENS,
   DEPRECATED_NETWORKS
