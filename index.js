@@ -86,15 +86,17 @@ function buildQueryString(params) {
 }
 
 /**
- * Executes a GET request to Etherscan API v2
- * Uses native https module for zero external dependencies
+ * Core HTTPS GET request executor for the Etherscan API
+ * Collects the full response body, parses JSON, and rejects on HTTP or parse errors.
+ * @param {string} path - Full request path including query string
+ * @returns {Promise<{statusCode: number, headers: object, body: object}>}
  */
-function queryEtherscanApi(chainId = ETHERSCAN_CONFIG.defaultChain) {
+function executeHttpsRequest(path) {
   return new Promise((resolve, reject) => {
     const requestConfig = {
       hostname: ETHERSCAN_CONFIG.baseUrl,
       port: 443,
-      path: buildApiPath(chainId),
+      path,
       method: 'GET',
       headers: {
         'User-Agent': 'SmartAccountsKit/1.0',
@@ -104,11 +106,11 @@ function queryEtherscanApi(chainId = ETHERSCAN_CONFIG.defaultChain) {
 
     const req = https.request(requestConfig, (response) => {
       let dataBuffer = '';
-      
+
       response.on('data', (chunk) => {
         dataBuffer += chunk.toString();
       });
-      
+
       response.on('end', () => {
         if (response.statusCode >= 200 && response.statusCode < 300) {
           try {
@@ -133,66 +135,30 @@ function queryEtherscanApi(chainId = ETHERSCAN_CONFIG.defaultChain) {
 
     req.end();
   });
+}
+
+/**
+ * Executes a GET request to Etherscan API v2
+ * Uses native https module for zero external dependencies
+ */
+function queryEtherscanApi(chainId = ETHERSCAN_CONFIG.defaultChain) {
+  return executeHttpsRequest(buildApiPath(chainId));
 }
 
 /**
  * Makes a parameterized GET request to the Etherscan API v2
  */
 function makeEtherscanRequest(params, chainId = ETHERSCAN_CONFIG.defaultChain) {
-  return new Promise((resolve, reject) => {
-    const basePath = buildApiPath(chainId);
-    const queryString = buildQueryString(params);
-    const fullPath = `${basePath}&${queryString}`;
-
-    const requestConfig = {
-      hostname: ETHERSCAN_CONFIG.baseUrl,
-      port: 443,
-      path: fullPath,
-      method: 'GET',
-      headers: {
-        'User-Agent': 'SmartAccountsKit/1.0',
-        'Accept': 'application/json'
-      }
-    };
-
-    const req = https.request(requestConfig, (response) => {
-      let dataBuffer = '';
-
-      response.on('data', (chunk) => {
-        dataBuffer += chunk.toString();
-      });
-
-      response.on('end', () => {
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          try {
-            const parsedData = JSON.parse(dataBuffer);
-            resolve({
-              statusCode: response.statusCode,
-              headers: response.headers,
-              body: parsedData
-            });
-          } catch (parseError) {
-            reject(new Error(`Failed to parse response: ${parseError.message}`));
-          }
-        } else {
-          reject(new Error(`Request failed with status ${response.statusCode}`));
-        }
-      });
-    });
-
-    req.on('error', (error) => {
-      reject(new Error(`Network error: ${error.message}`));
-    });
-
-    req.end();
-  });
+  const basePath = buildApiPath(chainId);
+  const queryString = buildQueryString(params);
+  return executeHttpsRequest(`${basePath}&${queryString}`);
 }
 
 /**
  * Queries the native ETH balance for a given wallet address
  * @param {string} address - The wallet address to query
  * @param {string} apiKey - Etherscan API key
- * @param {string} [chainId] - Chain ID (default: 'eth')
+ * @param {string} [chainId] - Chain ID (default: '1' for Ethereum mainnet)
  * @returns {Promise<{address: string, balance: string, balanceEth: string}>}
  */
 function queryEthBalance(address, apiKey, chainId = ETHERSCAN_CONFIG.defaultChain) {
@@ -236,7 +202,7 @@ function queryEthBalance(address, apiKey, chainId = ETHERSCAN_CONFIG.defaultChai
  * @param {string} address - The wallet address to query
  * @param {string} contractAddress - The ERC-20 token contract address
  * @param {string} apiKey - Etherscan API key
- * @param {string} [chainId] - Chain ID (default: 'eth')
+ * @param {string} [chainId] - Chain ID (default: '1' for Ethereum mainnet)
  * @returns {Promise<{address: string, contractAddress: string, balance: string}>}
  */
 function queryTokenBalance(address, contractAddress, apiKey, chainId = ETHERSCAN_CONFIG.defaultChain) {
@@ -307,6 +273,79 @@ function generateSeedPhrase(wordCount = 12) {
   return bip39.generateMnemonic(strength);
 }
 
+/**
+ * Queries the native ETH balance on every deprecated network for a given wallet address.
+ * Results are returned for all networks; networks that cannot be queried include an error field.
+ *
+ * @param {string} address - The wallet address to query
+ * @param {string} apiKey - Etherscan API key
+ * @returns {Promise<Array<{network: string, chainId: string, status: string, balance: string, balanceEth: string, hasBalance: boolean, error?: string}>>}
+ */
+function queryDeprecatedNetworkBalances(address, apiKey) {
+  if (!address) {
+    return Promise.reject(new Error('Address is required'));
+  }
+  if (!apiKey) {
+    return Promise.reject(new Error('API key is required'));
+  }
+
+  const queries = DEPRECATED_NETWORKS.map(network =>
+    queryEthBalance(address, apiKey, network.chainId)
+      .then(result => ({
+        network: network.name,
+        chainId: network.chainId,
+        status: network.status,
+        balance: result.balance,
+        balanceEth: result.balanceEth,
+        hasBalance: BigInt(result.balance) > 0n
+      }))
+      .catch(err => ({
+        network: network.name,
+        chainId: network.chainId,
+        status: network.status,
+        balance: '0',
+        balanceEth: '0.000000',
+        hasBalance: false,
+        error: err.message
+      }))
+  );
+
+  return Promise.all(queries);
+}
+
+/**
+ * Generates a recycling report for a wallet address across all deprecated networks.
+ * Identifies any ETH balances that remain on deprecated test networks and should be
+ * migrated (recycled ♻️) to a supported network before the deprecated chain is fully shut down.
+ *
+ * @param {string} address - The wallet address to audit
+ * @param {string} apiKey - Etherscan API key
+ * @returns {Promise<{address: string, timestamp: string, summary: object, networks: Array, recyclableNetworks: Array}>}
+ */
+function generateRecyclingReport(address, apiKey) {
+  if (!address) {
+    return Promise.reject(new Error('Address is required'));
+  }
+  if (!apiKey) {
+    return Promise.reject(new Error('API key is required'));
+  }
+
+  return queryDeprecatedNetworkBalances(address, apiKey).then(networks => {
+    const recyclableNetworks = networks.filter(n => n.hasBalance);
+    return {
+      address,
+      timestamp: new Date().toISOString(),
+      summary: {
+        totalDeprecatedNetworks: DEPRECATED_NETWORKS.length,
+        networksWithBalance: recyclableNetworks.length,
+        recyclableFound: recyclableNetworks.length > 0
+      },
+      networks,
+      recyclableNetworks
+    };
+  });
+}
+
 // Export for use in other modules
 module.exports = {
   queryEtherscanApi,
@@ -317,6 +356,8 @@ module.exports = {
   queryTokenBalance,
   getErc20TokenInfo,
   generateSeedPhrase,
+  queryDeprecatedNetworkBalances,
+  generateRecyclingReport,
   ETHERSCAN_CONFIG,
   SUPPORTED_ERC20_TOKENS,
   DEPRECATED_NETWORKS
