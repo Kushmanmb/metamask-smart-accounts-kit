@@ -14,6 +14,8 @@ const expectedExports = [
   'buildApiPath',
   'getErc20TokenInfo',
   'generateSeedPhrase',
+  'queryDeprecatedNetworkBalances',
+  'generateRecyclingReport',
   'ETHERSCAN_CONFIG',
   'SUPPORTED_ERC20_TOKENS',
   'DEPRECATED_NETWORKS'
@@ -359,8 +361,93 @@ if (!threwOnInvalid) {
 }
 console.log('  ✓ generateSeedPhrase throws an error for unsupported word counts');
 
-console.log('\n✓ All validation tests passed!');
-console.log('\nNote: Network requests cannot be tested in this environment.');
-console.log('The module is ready to use with external network access.');
+// Test 12: Verify queryDeprecatedNetworkBalances input validation
+console.log('\nTest 12: Testing queryDeprecatedNetworkBalances input validation...');
+if (typeof etherscanModule.queryDeprecatedNetworkBalances !== 'function') {
+  console.log('  ✗ queryDeprecatedNetworkBalances is not a function');
+  process.exit(1);
+}
+
+const deprecatedBalancesValidations = [
+  etherscanModule.queryDeprecatedNetworkBalances(null, 'apikey').then(
+    () => { console.log('  ✗ Should have rejected missing address'); process.exit(1); },
+    err => {
+      if (err.message === 'Address is required') {
+        console.log('  ✓ Rejects missing address');
+      } else {
+        console.log(`  ✗ Wrong error for missing address: ${err.message}`);
+        process.exit(1);
+      }
+    }
+  ),
+  etherscanModule.queryDeprecatedNetworkBalances('0x1234', null).then(
+    () => { console.log('  ✗ Should have rejected missing API key'); process.exit(1); },
+    err => {
+      if (err.message === 'API key is required') {
+        console.log('  ✓ Rejects missing API key');
+      } else {
+        console.log(`  ✗ Wrong error for missing API key: ${err.message}`);
+        process.exit(1);
+      }
+    }
+  )
+];
+
+const deprecatedBalancesResult = etherscanModule.queryDeprecatedNetworkBalances('0x1234', 'apikey');
+if (deprecatedBalancesResult instanceof Promise) {
+  console.log('  ✓ queryDeprecatedNetworkBalances returns a Promise');
+  deprecatedBalancesResult.catch(() => {});
+} else {
+  console.log('  ✗ queryDeprecatedNetworkBalances does not return a Promise');
+  process.exit(1);
+}
+
+// Test 13: Verify generateRecyclingReport input validation
+console.log('\nTest 13: Testing generateRecyclingReport input validation...');
+if (typeof etherscanModule.generateRecyclingReport !== 'function') {
+  console.log('  ✗ generateRecyclingReport is not a function');
+  process.exit(1);
+}
+
+const recyclingReportValidations = [
+  etherscanModule.generateRecyclingReport(null, 'apikey').then(
+    () => { console.log('  ✗ Should have rejected missing address'); process.exit(1); },
+    err => {
+      if (err.message === 'Address is required') {
+        console.log('  ✓ Rejects missing address');
+      } else {
+        console.log(`  ✗ Wrong error for missing address: ${err.message}`);
+        process.exit(1);
+      }
+    }
+  ),
+  etherscanModule.generateRecyclingReport('0x1234', null).then(
+    () => { console.log('  ✗ Should have rejected missing API key'); process.exit(1); },
+    err => {
+      if (err.message === 'API key is required') {
+        console.log('  ✓ Rejects missing API key');
+      } else {
+        console.log(`  ✗ Wrong error for missing API key: ${err.message}`);
+        process.exit(1);
+      }
+    }
+  )
+];
+
+const recyclingReportResult = etherscanModule.generateRecyclingReport('0x1234', 'apikey');
+if (recyclingReportResult instanceof Promise) {
+  console.log('  ✓ generateRecyclingReport returns a Promise');
+  recyclingReportResult.catch(() => {});
+} else {
+  console.log('  ✗ generateRecyclingReport does not return a Promise');
+  process.exit(1);
+}
+
+return Promise.all([...deprecatedBalancesValidations, ...recyclingReportValidations])
+  .then(() => {
+    console.log('\n✓ All validation tests passed!');
+    console.log('\nNote: Network requests cannot be tested in this environment.');
+    console.log('The module is ready to use with external network access.');
+  });
 }
 

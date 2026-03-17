@@ -1,0 +1,44 @@
+name: Recycle Deprecated Tokens ♻️
+
+on:
+  workflow_dispatch:
+    inputs:
+      wallet_address:
+        description: 'Wallet address to audit for recyclable balances on deprecated networks'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  recycle:
+    name: Check Deprecated Networks for Recyclable Balances
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20.x'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run deprecated token recycling check
+        run: node recycle.js
+        env:
+          ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
+          WALLET_ADDRESS: ${{ inputs.wallet_address }}
+
+      - name: Upload recycling report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: recycling-report-${{ github.run_number }}
+          path: recycling-report.json
+          retention-days: 30

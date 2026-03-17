@@ -273,6 +273,79 @@ function generateSeedPhrase(wordCount = 12) {
   return bip39.generateMnemonic(strength);
 }
 
+/**
+ * Queries the native ETH balance on every deprecated network for a given wallet address.
+ * Results are returned for all networks; networks that cannot be queried include an error field.
+ *
+ * @param {string} address - The wallet address to query
+ * @param {string} apiKey - Etherscan API key
+ * @returns {Promise<Array<{network: string, chainId: string, status: string, balance: string, balanceEth: string, hasBalance: boolean, error?: string}>>}
+ */
+function queryDeprecatedNetworkBalances(address, apiKey) {
+  if (!address) {
+    return Promise.reject(new Error('Address is required'));
+  }
+  if (!apiKey) {
+    return Promise.reject(new Error('API key is required'));
+  }
+
+  const queries = DEPRECATED_NETWORKS.map(network =>
+    queryEthBalance(address, apiKey, network.chainId)
+      .then(result => ({
+        network: network.name,
+        chainId: network.chainId,
+        status: network.status,
+        balance: result.balance,
+        balanceEth: result.balanceEth,
+        hasBalance: BigInt(result.balance) > 0n
+      }))
+      .catch(err => ({
+        network: network.name,
+        chainId: network.chainId,
+        status: network.status,
+        balance: '0',
+        balanceEth: '0.000000',
+        hasBalance: false,
+        error: err.message
+      }))
+  );
+
+  return Promise.all(queries);
+}
+
+/**
+ * Generates a recycling report for a wallet address across all deprecated networks.
+ * Identifies any ETH balances that remain on deprecated test networks and should be
+ * migrated (recycled ♻️) to a supported network before the deprecated chain is fully shut down.
+ *
+ * @param {string} address - The wallet address to audit
+ * @param {string} apiKey - Etherscan API key
+ * @returns {Promise<{address: string, timestamp: string, summary: object, networks: Array, recyclableNetworks: Array}>}
+ */
+function generateRecyclingReport(address, apiKey) {
+  if (!address) {
+    return Promise.reject(new Error('Address is required'));
+  }
+  if (!apiKey) {
+    return Promise.reject(new Error('API key is required'));
+  }
+
+  return queryDeprecatedNetworkBalances(address, apiKey).then(networks => {
+    const recyclableNetworks = networks.filter(n => n.hasBalance);
+    return {
+      address,
+      timestamp: new Date().toISOString(),
+      summary: {
+        totalDeprecatedNetworks: DEPRECATED_NETWORKS.length,
+        networksWithBalance: recyclableNetworks.length,
+        recyclableFound: recyclableNetworks.length > 0
+      },
+      networks,
+      recyclableNetworks
+    };
+  });
+}
+
 // Export for use in other modules
 module.exports = {
   queryEtherscanApi,
@@ -283,6 +356,8 @@ module.exports = {
   queryTokenBalance,
   getErc20TokenInfo,
   generateSeedPhrase,
+  queryDeprecatedNetworkBalances,
+  generateRecyclingReport,
   ETHERSCAN_CONFIG,
   SUPPORTED_ERC20_TOKENS,
   DEPRECATED_NETWORKS
