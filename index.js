@@ -274,6 +274,57 @@ function generateSeedPhrase(wordCount = 12) {
 }
 
 /**
+ * Retrieves comprehensive details for a wallet address, including the native ETH balance
+ * and the balance of every supported ERC-20 token.
+ *
+ * Token queries that fail (e.g. the contract is not deployed on the given chain) are
+ * captured individually so that one failing token does not prevent the rest of the data
+ * from being returned.
+ *
+ * @param {string} address - The wallet address to query
+ * @param {string} apiKey - Etherscan API key
+ * @param {string} [chainId] - Chain ID (default: '1' for Ethereum mainnet)
+ * @returns {Promise<{address: string, chainId: string, ethBalance: string, ethBalanceEth: string, tokens: Array}>}
+ */
+function getAddressDetails(address, apiKey, chainId = ETHERSCAN_CONFIG.defaultChain) {
+  if (!address) {
+    return Promise.reject(new Error('Address is required'));
+  }
+  if (!apiKey) {
+    return Promise.reject(new Error('API key is required'));
+  }
+
+  return queryEthBalance(address, apiKey, chainId).then(ethResult => {
+    const tokenQueries = SUPPORTED_ERC20_TOKENS.map(token =>
+      queryTokenBalance(address, token.address, apiKey, chainId)
+        .then(tokenResult => ({
+          symbol: token.symbol,
+          name: token.name,
+          contractAddress: token.address,
+          decimals: token.decimals,
+          balance: tokenResult.balance
+        }))
+        .catch(err => ({
+          symbol: token.symbol,
+          name: token.name,
+          contractAddress: token.address,
+          decimals: token.decimals,
+          balance: '0',
+          error: err.message
+        }))
+    );
+
+    return Promise.all(tokenQueries).then(tokens => ({
+      address,
+      chainId,
+      ethBalance: ethResult.balance,
+      ethBalanceEth: ethResult.balanceEth,
+      tokens
+    }));
+  });
+}
+
+/**
  * Queries the native ETH balance on every deprecated network for a given wallet address.
  * Results are returned for all networks; networks that cannot be queried include an error field.
  *
@@ -355,6 +406,7 @@ module.exports = {
   queryEthBalance,
   queryTokenBalance,
   getErc20TokenInfo,
+  getAddressDetails,
   generateSeedPhrase,
   queryDeprecatedNetworkBalances,
   generateRecyclingReport,
