@@ -13,6 +13,7 @@ const expectedExports = [
   'queryEtherscanApi',
   'buildApiPath',
   'getErc20TokenInfo',
+  'getAddressDetails',
   'generateSeedPhrase',
   'queryDeprecatedNetworkBalances',
   'generateRecyclingReport',
@@ -445,9 +446,57 @@ if (recyclingReportResult instanceof Promise) {
 
 return Promise.all([...deprecatedBalancesValidations, ...recyclingReportValidations])
   .then(() => {
-    console.log('\n✓ All validation tests passed!');
-    console.log('\nNote: Network requests cannot be tested in this environment.');
-    console.log('The module is ready to use with external network access.');
+
+// Test 14: Verify getAddressDetails is exported
+console.log('\nTest 14: Checking getAddressDetails export...');
+if (typeof etherscanModule.getAddressDetails !== 'function') {
+  console.log('  ✗ getAddressDetails is not a function');
+  process.exit(1);
+}
+console.log('  ✓ getAddressDetails is exported and is a function');
+
+// Test 15: Verify getAddressDetails input validation
+console.log('\nTest 15: Testing getAddressDetails input validation...');
+
+return Promise.all([
+  etherscanModule.getAddressDetails(null, 'apikey').then(
+    () => { console.log('  ✗ Should have rejected missing address'); process.exit(1); },
+    err => {
+      if (err.message === 'Address is required') {
+        console.log('  ✓ Rejects missing address');
+      } else {
+        console.log(`  ✗ Wrong error for missing address: ${err.message}`);
+        process.exit(1);
+      }
+    }
+  ),
+  etherscanModule.getAddressDetails('0x1234', null).then(
+    () => { console.log('  ✗ Should have rejected missing API key'); process.exit(1); },
+    err => {
+      if (err.message === 'API key is required') {
+        console.log('  ✓ Rejects missing API key');
+      } else {
+        console.log(`  ✗ Wrong error for missing API key: ${err.message}`);
+        process.exit(1);
+      }
+    }
+  )
+]).then(() => {
+  // Test 16: Verify getAddressDetails returns a Promise
+  console.log('\nTest 16: Verifying getAddressDetails returns a Promise...');
+  const detailsResult = etherscanModule.getAddressDetails('0x1234', 'apikey');
+  if (detailsResult instanceof Promise) {
+    console.log('  ✓ getAddressDetails returns a Promise');
+    detailsResult.catch(() => {});
+  } else {
+    console.log('  ✗ getAddressDetails does not return a Promise');
+    process.exit(1);
+  }
+
+  console.log('\n✓ All validation tests passed!');
+  console.log('\nNote: Network requests cannot be tested in this environment.');
+  console.log('The module is ready to use with external network access.');
+  });
   });
 }
 

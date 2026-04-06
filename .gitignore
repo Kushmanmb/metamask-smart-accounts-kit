@@ -15,3 +15,6 @@ yarn-error.log*
 
 # Recycling report output
 recycling-report.json
+
+# npm lock file (project uses yarn)
+package-lock.json
