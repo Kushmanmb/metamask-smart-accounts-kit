@@ -20,7 +20,8 @@ async function expectReject(promise, expectedMessage) {
   }
 }
 
-const asyncValidationTests = [];
+async function runTests() {
+  const asyncValidationTests = [];
 
 // Test 1: Verify exports
 console.log('Test 1: Checking module exports...');
@@ -388,13 +389,14 @@ if (contractRunsResult instanceof Promise) {
   process.exit(1);
 }
 
-Promise.all(asyncValidationTests)
-  .then(() => {
-    console.log('\n✓ All 13 tests passed!');
-    console.log('\nNote: Network requests cannot be tested in this environment.');
-    console.log('The module is ready to use with external network access.');
-  })
-  .catch(err => {
-    console.error(`\n✗ Async validation test failed: ${err.message}`);
-    process.exitCode = 1;
-  });
+  await Promise.all(asyncValidationTests);
+  console.log('\n✓ All 13 tests passed!');
+  console.log('\nNote: Network requests cannot be tested in this environment.');
+  console.log('The module is ready to use with external network access.');
+}
+
+runTests().catch(error => {
+  console.error('\n✗ Tests failed');
+  console.error(error);
+  process.exit(1);
+});
