@@ -7,6 +7,21 @@ const etherscanModule = require('./index.js');
 
 console.log('Running module validation tests...\n');
 
+async function expectReject(promise, expectedMessage) {
+  try {
+    await promise;
+    throw new Error(`Expected rejection: "${expectedMessage}"`);
+  } catch (err) {
+    if (err.message !== expectedMessage) {
+      throw new Error(
+        `Expected "${expectedMessage}", got "${err.message}"`
+      );
+    }
+  }
+}
+
+const asyncValidationTests = [];
+
 // Test 1: Verify exports
 console.log('Test 1: Checking module exports...');
 const expectedExports = [
@@ -120,25 +135,16 @@ if (queryStr === expectedStr) {
 
 // Test 6: Verify queryEthBalance input validation
 console.log('\nTest 6: Testing queryEthBalance input validation...');
-let validationPassed = true;
 
-etherscanModule.queryEthBalance(null, 'apikey').catch(err => {
-  if (err.message === 'Address is required') {
-    console.log('  ✓ Rejects missing address');
-  } else {
-    console.log(`  ✗ Wrong error for missing address: ${err.message}`);
-    validationPassed = false;
-  }
-});
+asyncValidationTests.push(
+  expectReject(etherscanModule.queryEthBalance(null, 'apikey'), 'Address is required')
+    .then(() => console.log('  ✓ Rejects missing address'))
+);
 
-etherscanModule.queryEthBalance('0x1234', null).catch(err => {
-  if (err.message === 'API key is required') {
-    console.log('  ✓ Rejects missing API key');
-  } else {
-    console.log(`  ✗ Wrong error for missing API key: ${err.message}`);
-    validationPassed = false;
-  }
-});
+asyncValidationTests.push(
+  expectReject(etherscanModule.queryEthBalance('0x1234', null), 'API key is required')
+    .then(() => console.log('  ✓ Rejects missing API key'))
+);
 
 const ethBalanceResult = etherscanModule.queryEthBalance('0x1234', 'apikey');
 if (ethBalanceResult instanceof Promise) {
@@ -146,43 +152,26 @@ if (ethBalanceResult instanceof Promise) {
   ethBalanceResult.catch(() => {});
 } else {
   console.log('  ✗ queryEthBalance does not return a Promise');
-  validationPassed = false;
-}
-
-if (!validationPassed) {
   process.exit(1);
 }
 
 // Test 7: Verify queryTokenBalance input validation
 console.log('\nTest 7: Testing queryTokenBalance input validation...');
-let tokenValidationPassed = true;
 
-etherscanModule.queryTokenBalance(null, '0xtoken', 'apikey').catch(err => {
-  if (err.message === 'Address is required') {
-    console.log('  ✓ Rejects missing address');
-  } else {
-    console.log(`  ✗ Wrong error for missing address: ${err.message}`);
-    tokenValidationPassed = false;
-  }
-});
+asyncValidationTests.push(
+  expectReject(etherscanModule.queryTokenBalance(null, '0xtoken', 'apikey'), 'Address is required')
+    .then(() => console.log('  ✓ Rejects missing address'))
+);
 
-etherscanModule.queryTokenBalance('0x1234', null, 'apikey').catch(err => {
-  if (err.message === 'Contract address is required') {
-    console.log('  ✓ Rejects missing contract address');
-  } else {
-    console.log(`  ✗ Wrong error for missing contract address: ${err.message}`);
-    tokenValidationPassed = false;
-  }
-});
+asyncValidationTests.push(
+  expectReject(etherscanModule.queryTokenBalance('0x1234', null, 'apikey'), 'Contract address is required')
+    .then(() => console.log('  ✓ Rejects missing contract address'))
+);
 
-etherscanModule.queryTokenBalance('0x1234', '0xtoken', null).catch(err => {
-  if (err.message === 'API key is required') {
-    console.log('  ✓ Rejects missing API key');
-  } else {
-    console.log(`  ✗ Wrong error for missing API key: ${err.message}`);
-    tokenValidationPassed = false;
-  }
-});
+asyncValidationTests.push(
+  expectReject(etherscanModule.queryTokenBalance('0x1234', '0xtoken', null), 'API key is required')
+    .then(() => console.log('  ✓ Rejects missing API key'))
+);
 
 const tokenBalanceResult = etherscanModule.queryTokenBalance('0x1234', '0xtoken', 'apikey');
 if (tokenBalanceResult instanceof Promise) {
@@ -190,10 +179,6 @@ if (tokenBalanceResult instanceof Promise) {
   tokenBalanceResult.catch(() => {});
 } else {
   console.log('  ✗ queryTokenBalance does not return a Promise');
-  tokenValidationPassed = false;
-}
-
-if (!tokenValidationPassed) {
   process.exit(1);
 }
 
@@ -353,23 +338,15 @@ if (typeof etherscanModule.queryContractCode !== 'function') {
   process.exit(1);
 }
 
-etherscanModule.queryContractCode(null, 'apikey').catch(err => {
-  if (err.message === 'Address is required') {
-    console.log('  ✓ Rejects missing address');
-  } else {
-    console.log(`  ✗ Wrong error for missing address: ${err.message}`);
-    process.exit(1);
-  }
-});
+asyncValidationTests.push(
+  expectReject(etherscanModule.queryContractCode(null, 'apikey'), 'Address is required')
+    .then(() => console.log('  ✓ Rejects missing address'))
+);
 
-etherscanModule.queryContractCode('0x1234', null).catch(err => {
-  if (err.message === 'API key is required') {
-    console.log('  ✓ Rejects missing API key');
-  } else {
-    console.log(`  ✗ Wrong error for missing API key: ${err.message}`);
-    process.exit(1);
-  }
-});
+asyncValidationTests.push(
+  expectReject(etherscanModule.queryContractCode('0x1234', null), 'API key is required')
+    .then(() => console.log('  ✓ Rejects missing API key'))
+);
 
 const contractCodeResult = etherscanModule.queryContractCode('0x1234', 'apikey');
 if (contractCodeResult instanceof Promise) {
@@ -387,23 +364,15 @@ if (typeof etherscanModule.getContractRuns !== 'function') {
   process.exit(1);
 }
 
-etherscanModule.getContractRuns(null, 'apikey').catch(err => {
-  if (err.message === 'Address is required') {
-    console.log('  ✓ Rejects missing address');
-  } else {
-    console.log(`  ✗ Wrong error for missing address: ${err.message}`);
-    process.exit(1);
-  }
-});
+asyncValidationTests.push(
+  expectReject(etherscanModule.getContractRuns(null, 'apikey'), 'Address is required')
+    .then(() => console.log('  ✓ Rejects missing address'))
+);
 
-etherscanModule.getContractRuns('0x1234', null).catch(err => {
-  if (err.message === 'API key is required') {
-    console.log('  ✓ Rejects missing API key');
-  } else {
-    console.log(`  ✗ Wrong error for missing API key: ${err.message}`);
-    process.exit(1);
-  }
-});
+asyncValidationTests.push(
+  expectReject(etherscanModule.getContractRuns('0x1234', null), 'API key is required')
+    .then(() => console.log('  ✓ Rejects missing API key'))
+);
 
 const contractRunsResult = etherscanModule.getContractRuns('0x1234', 'apikey');
 if (contractRunsResult instanceof Promise) {
@@ -414,7 +383,13 @@ if (contractRunsResult instanceof Promise) {
   process.exit(1);
 }
 
-console.log('\n✓ All 13 tests passed!');
-console.log('\nNote: Network requests cannot be tested in this environment.');
-console.log('The module is ready to use with external network access.');
-
+Promise.all(asyncValidationTests)
+  .then(() => {
+    console.log('\n✓ All 13 tests passed!');
+    console.log('\nNote: Network requests cannot be tested in this environment.');
+    console.log('The module is ready to use with external network access.');
+  })
+  .catch(err => {
+    console.error(`\n✗ Async validation test failed: ${err.message}`);
+    process.exitCode = 1;
+  });
