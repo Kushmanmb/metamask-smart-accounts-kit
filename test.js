@@ -137,8 +137,13 @@ if (queryStr === expectedStr) {
 console.log('\nTest 6: Testing queryEthBalance input validation...');
 
 asyncValidationTests.push(
-  expectReject(etherscanModule.queryEthBalance(null, 'apikey'), 'Address is required')
-    .then(() => console.log('  ✓ Rejects missing address'))
+  (async () => {
+    await expectReject(
+      etherscanModule.queryEthBalance(null, 'apikey'),
+      'Address is required'
+    );
+    console.log('  ✓ Rejects missing address');
+  })()
 );
 
 asyncValidationTests.push(
