@@ -56,7 +56,7 @@ const SUPPORTED_ERC20_TOKENS = [
     symbol: 'WETH',
     name: 'Wrapped Ether',
     chainId: '1',
-    address: '0xa14373a2209fAd5cDCc22841e9176E0ce4C50c17',
+    address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
     decimals: 18
   },
   {
